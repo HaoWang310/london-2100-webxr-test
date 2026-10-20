@@ -68,3 +68,30 @@ GitHub 仓库已包含所有第一阶段必需文件：
 - Three.js: https://threejs.org/manual/#en/webxr-basics
 - Rhino 8 glTF 导出: https://docs.mcneel.com/rhino/8mac/help/en-us/fileio/gltf_import_export.htm
 - GitHub Pages: https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site
+
+
+## v1.4 · Interactive Unit Editor（独立测试模式）
+
+打开网站，在第一栏「场景」中点击 **Unit 拼装**，会出现 6 个独立模块：
+Residential × 2、Agriculture、Public、Bridge、Core。每个模块按 **3 × 6 × 3 m** 的基础模数创建，不需要 Rhino 模型。
+
+### 电脑端
+
+- **单击模块**：选中并显示浅蓝色轮廓；**按住鼠标左键拖动**：在当前楼层水平移动，松开时网格吸附。
+- **E / Q**：以 3m 层高上升/下降选中的模块；**R**：旋转 90°；**C**：复制；**Delete / Backspace**：删除。
+- 右侧操作按钮提供新增、复制、旋转、删除、重置及网格吸附开关。
+- 点击「进入电脑漫游」后，E/Q 恢复为第一人称升降；Esc 退出漫游后可继续编辑。
+
+### Meta Quest 3 / Quest 3S
+
+1. 用头显自带浏览器打开已部署的 HTTPS 网页。
+2. 先进入 **Unit 拼装**，再点击 **Enter VR**。
+3. **手柄扳机（Trigger）**：射线选中 Unit，显示蓝色边界。
+4. **握持键（Grip）**：按住抓取、移动，松开后自动吸附（X 3m、Z 6m、层高 3m）。
+5. **右摇杆横向**：在选中 Unit 时旋转 90°；未选中时仍为视角转向。
+6. **左侧空间浮动工具栏**：用扳机点击 TYPE / ADD UNIT / COPY / ROTATE / DELETE / RESET，完成编辑。
+7. 左摇杆继续用于移动；**Unit 模式下扳机不再传送**，避免编辑与传送冲突。
+
+> v1.4 是第一阶段原型。Quest 手柄抓取和浮动菜单需要在实机验证，浏览器对 WebXR squeeze 事件的支持可能因设备与系统版本不同。暂不支持裸手捏合抓取、自动结构稳定性评估或 Unit 之间碰撞阻止。
+
+**关于导入的 Rhino GLB：** 原有 Rhino 导入和漫游逻辑保留；导入 GLB **不会自动把整个复杂建筑拆成可抓取 Unit**。后续需基于 Rhino 中独立命名的节点建立映射。
