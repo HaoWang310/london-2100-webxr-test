@@ -116,6 +116,7 @@ export function createUnitEditor({
       }));
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = -.025;
+    floor.name = 'Unit_Work_Area';
     const grid = new THREE.GridHelper(42, 14, 0x67aaba, 0x345a64);
     grid.position.y = .004;
     grid.material.transparent = true;
@@ -238,6 +239,7 @@ export function createUnitEditor({
   }
   function reset() {
     if (!state.active || !state.group) return;
+    releaseGrip();
     setSelected(null);
     for (const u of state.units) { state.group.remove(u); disposeUnit(u); }
     state.units.length = 0; state.nextId = 1;
@@ -318,7 +320,16 @@ export function createUnitEditor({
     panel.hidden = true;
     modeButton.classList.remove('active');
     gltfHint.hidden = true;
-    // The host clears the scene model and owns render/memory disposal.
+    // Dispose auxiliary resources not owned by the host mesh traversal.
+    if (state.group) for (const child of state.group.children) {
+      if (child.isLineSegments) {
+        child.geometry?.dispose();
+        child.material?.dispose();
+      }
+      if (child.isMesh && child.name === 'Unit_Work_Area') {
+        child.material?.dispose();
+      }
+    }
     // Keep no stale grip or raycast references to cleared nodes.
     state.units.length = 0;
     state.group = null;
