@@ -26,3 +26,17 @@
 
 /* v1.2 PBR material troubleshooting */
 .view-controls .pill{flex:1 1 calc(50% - 8px)}
+
+/* v1.3 - large-scene render/VR performance controls */
+.performance-box{
+  display:grid;grid-template-columns:1fr 1fr;gap:9px;
+  border:1px solid var(--line);border-radius:8px;background:#111b28;
+  padding:12px;
+}
+.performance-box label{color:#a2b6ca;font-size:11px;align-self:center}
+.quality-select{min-width:0;padding:8px 5px;border-radius:6px;
+  border:1px solid #435d73;background:#1a2837;color:#d6eaf8;font-size:11px}
+.performance-box #detailBtn{grid-column:1/-1;min-height:35px}
+.performance-stats{grid-column:1/-1;white-space:pre-line;line-height:1.7;
+  color:#9bd5e6;background:#0b1520;border-radius:6px;padding:10px 8px;
+  font-size:10px;letter-spacing:0.1px;font-variant-numeric:tabular-nums}
