@@ -524,13 +524,13 @@ unitEditor = createUnitEditor({
 renderer.xr.addEventListener('sessionstart', () => {
   if (document.pointerLockElement) document.exitPointerLock();
   enterWalkPosition();
-  unitEditor?.syncVrUI();
+  unitEditor?.syncVrUI(true);
   camera.position.set(0, 0, 0);
   notify('VR 已开启 · 左摇杆移动，扳机指向地面传送');
 });
 renderer.xr.addEventListener('sessionend', () => {
   unitEditor?.releaseGrip();
-  unitEditor?.syncVrUI();
+  unitEditor?.syncVrUI(false);
   camera.position.set(0, 1.65, 0);
   marker.visible = false;
   updateOrbitCamera();
