@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#080c13" />
   <meta name="description" content="Rhino 8 → GLB → WebXR → Meta Quest 3. London 2100 architecture walkthrough proof of concept." />
   <title>London 2100 · WebXR Architecture Test</title>
-  <link rel="stylesheet" href="./style.css?v=1.1" />
+  <link rel="stylesheet" href="./style.css?v=1.2" />
   <script type="importmap">
     {
       "imports": {
@@ -21,7 +21,7 @@
   <div class="frame" aria-hidden="true"></div>
   <div class="topbar">
     <div class="brand"><span class="brand-mark">L<span>∞</span></span><span class="brand-text">LONDON 2100 <span>/ XR LAB</span></span></div>
-    <span class="version">PROTOTYPE · v1.1</span>
+    <span class="version">PROTOTYPE · v1.2</span>
   </div>
   <aside class="panel">
     <div class="eyebrow"><span class="pulse"></span> EXPERIMENT 01 · IMMERSIVE ARCHITECTURE</div>
@@ -49,8 +49,9 @@
       <button id="fitBtn" class="pill" type="button">适配模型视角</button>
       <button id="topBtn" class="pill" type="button">顶视图</button>
       <button id="outlineBtn" class="pill active" type="button">显示边界</button>
+      <button id="materialBtn" class="pill" type="button">灰模诊断</button>
     </div>
-    <p class="view-hint">拖动鼠标旋转模型 · 滚轮缩放 · 导入后自动显示全貌</p>
+    <p class="view-hint">拖动旋转 · 滚轮缩放 · 材质发黑时点击「灰模诊断」</p>
     <div class="section-label">04 — 第一人称漫游</div>
     <button class="primary" id="walkBtn" type="button">进入电脑漫游 <span>↗</span></button>
     <p class="instructions"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移动 · 鼠标看向 · <kbd>Esc</kbd> 退出</p>
@@ -61,6 +62,6 @@
   <div id="notification" class="notification" role="status" aria-live="polite">场景初始化中…</div>
   <div class="bottom-left">WEBXR PROOF OF CONCEPT <span>•</span> NO UNREAL ENGINE REQUIRED</div>
   <div id="dropHint" class="drop-hint" aria-hidden="true">松开以导入 Rhino GLB 模型</div>
-  <script type="module" src="./main.js?v=1.1"></script>
+  <script type="module" src="./main.js?v=1.2"></script>
 </body>
 </html>
