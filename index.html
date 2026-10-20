@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#080c13" />
+  <meta name="description" content="Rhino 8 → GLB → WebXR → Meta Quest 3. London 2100 architecture walkthrough proof of concept." />
+  <title>London 2100 · WebXR Architecture Test</title>
+  <link rel="stylesheet" href="./style.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <canvas id="scene" aria-label="Three dimensional architectural scene"></canvas>
+  <div class="frame" aria-hidden="true"></div>
+  <div class="topbar">
+    <div class="brand"><span class="brand-mark">L<span>∞</span></span><span class="brand-text">LONDON 2100 <span>/ XR LAB</span></span></div>
+    <span class="version">PROTOTYPE · v1.0</span>
+  </div>
+  <aside class="panel">
+    <div class="eyebrow"><span class="pulse"></span> EXPERIMENT 01 · IMMERSIVE ARCHITECTURE</div>
+    <h1>建筑漫游<br/><span>WebXR Test</span></h1>
+    <p class="intro">Rhino 8 → GLB → Three.js → Meta Quest 3</p>
+    <div class="section-label">01 — 场景</div>
+    <div class="scene-controls">
+      <button id="demoBtn" class="pill active" type="button">内置建筑</button>
+      <button id="sampleBtn" class="pill" type="button">示例 GLB</button>
+    </div>
+    <div class="section-label">02 — Rhino 模型</div>
+    <label class="upload" for="modelInput">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V3m0 0L7 8m5-5 5 5"/><path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg>
+      <span><strong>导入你的 GLB 文件</strong><small>点击选择或拖入 .glb · 单文件格式</small></span>
+    </label>
+    <input id="modelInput" class="visually-hidden" type="file" accept=".glb,model/gltf-binary" />
+    <div class="file-name" id="fileName">当前：内置建筑示例</div>
+    <div class="stats">
+      <div><span>比例</span><strong>1:1 REAL SCALE</strong></div>
+      <div><span>尺寸</span><strong id="sizeReadout">12 × 9 × 3.6 m</strong></div>
+      <div><span>坐标</span><strong>Y UP / METRES</strong></div>
+    </div>
+    <div class="section-label">03 — 操作</div>
+    <button class="primary" id="walkBtn" type="button">进入电脑漫游 <span>↗</span></button>
+    <p class="instructions"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移动 · 鼠标看向 · <kbd>Esc</kbd> 退出</p>
+    <div class="vr-notice"><span class="dot"></span><div><strong>Meta Quest 3 / 3S</strong><span>使用头显浏览器打开 HTTPS 网页，再点击底部 Enter VR 按钮。</span></div></div>
+    <div class="footnote">VR 左摇杆移动 · 右摇杆转向 · 手柄扳机指向地面传送<br/>测试版本未启用碰撞及楼梯自动行走。</div>
+  </aside>
+  <div class="reticle" aria-hidden="true"><span></span></div>
+  <div id="notification" class="notification" role="status" aria-live="polite">场景初始化中…</div>
+  <div class="bottom-left">WEBXR PROOF OF CONCEPT <span>•</span> NO UNREAL ENGINE REQUIRED</div>
+  <div id="dropHint" class="drop-hint" aria-hidden="true">松开以导入 Rhino GLB 模型</div>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
