@@ -50,18 +50,22 @@ export function createUnitEditor({
   const coloredMats = Object.fromEntries(Object.entries(TYPES).map(([key, val]) => [
     key, new THREE.MeshStandardMaterial({ color: val.color, roughness: .65 })
   ]));
-  const unitPlane = new THREE.PlaneGeometry(33, 45);
-  const floorMark = new THREE.Mesh(unitPlane, new THREE.MeshBasicMaterial({
-    color: 0x193442, transparent: true, opacity: .35,
-    side: THREE.DoubleSide, depthWrite: false
-  }));
-  floorMark.rotation.x = -Math.PI / 2;
-  floorMark.position.y = -.025;
-  // Unit overview grid: 3m on X, 6m on Z; 3m floor height.
-  const grid = new THREE.GridHelper(42, 14, 0x67aaba, 0x345a64);
-  grid.position.y = .004;
-  grid.material.transparent = true;
-  grid.material.opacity = .31;
+  // Create helper objects per activation because the host disposes procedural
+  // mesh geometries when changing models; never reuse a disposed GPU buffer.
+  function createWorkArea(group) {
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(33, 45),
+      new THREE.MeshBasicMaterial({
+        color: 0x193442, transparent: true, opacity: .35,
+        side: THREE.DoubleSide, depthWrite: false
+      }));
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -.025;
+    const grid = new THREE.GridHelper(42, 14, 0x67aaba, 0x345a64);
+    grid.position.y = .004;
+    grid.material.transparent = true;
+    grid.material.opacity = .31;
+    group.add(floor, grid);
+  }
   // No all-building GLB geometry is ray-tested or reparented in edit mode.
   function box(parent, w, h, d, x, y, z, material) {
     const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
@@ -240,7 +244,7 @@ export function createUnitEditor({
     state.group = new THREE.Group();
     state.group.name = 'London2100_Editable_Unit_Collection';
     state.group.userData.procedural = true;
-    state.group.add(floorMark, grid);
+    createWorkArea(state.group);
     panel.hidden = false;
     modeButton.classList.add('active');
     gltfHint.hidden = false;
@@ -385,6 +389,7 @@ export function createUnitEditor({
     get group() { return state.group; },
     enter, leave, reset, selectXR, gripStart, releaseGrip, tickXR,
     handlePointerDown, handlePointerMove, handlePointerEnd, handleKey,
-    get selection() { return state.selected; }
+    get selection() { return state.selected; },
+    rotateSelected: rotate
   };
 }
