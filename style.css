@@ -15,3 +15,11 @@
 .reticle{display:none;position:fixed;left:50%;top:50%;width:10px;height:10px;transform:translate(-50%,-50%);border:1px solid #dbf9ff;border-radius:50%;z-index:2;pointer-events:none}.reticle span{position:absolute;inset:3px;background:#d6f8ff;border-radius:50%}.drop-hint{display:none;position:fixed;inset:22px;z-index:10;place-items:center;background:rgba(4,23,31,.91);border:2px dashed var(--accent);color:var(--accent);font-size:22px;font-weight:600}.drop-hint.show{display:grid}.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
 #VRButton{position:fixed!important;left:auto!important;bottom:28px!important;right:36px!important;width:198px!important;border-radius:8px!important;background:#a4e8fa!important;border:0!important;color:#0b1d2a!important;font-size:12px!important;font-weight:750!important;opacity:1!important;padding:12px 5px!important;z-index:6!important}
 @media(max-width:700px){.frame{inset:6px}.topbar{top:20px;left:20px;right:20px}.version{display:none}.panel{top:64px;left:12px;width:min(350px,calc(100vw - 24px));max-height:calc(100vh - 155px);padding:19px}.panel h1{font-size:24px}.bottom-left{display:none}#VRButton{bottom:12px!important;right:12px!important;width:160px!important}.notification{top:auto;bottom:72px;right:12px}.panel{max-height:calc(100vh - 188px)}}
+
+
+/* Imported Rhino model inspection controls (v1.1) */
+.view-controls{display:flex;gap:7px;flex-wrap:wrap}
+.view-controls .pill{min-width:0;font-size:10px;padding:7px 8px;white-space:nowrap}
+.view-hint{font-size:10px;color:#8ca2b5;line-height:1.6;margin:9px 0 2px}
+#scene{cursor:grab}
+#scene:active{cursor:grabbing}
