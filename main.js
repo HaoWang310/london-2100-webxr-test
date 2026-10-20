@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { VRButton } from 'three/addons/webxr/VRButton.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 // London 2100 WebXR proof of concept. All dimensions are in metres.
 const $ = id => document.getElementById(id);
@@ -8,7 +9,8 @@ const el = {
   canvas: $('scene'), demo: $('demoBtn'), sample: $('sampleBtn'),
   input: $('modelInput'), walk: $('walkBtn'), file: $('fileName'),
   size: $('sizeReadout'), status: $('notification'), hint: $('dropHint'),
-  fit: $('fitBtn'), top: $('topBtn'), outline: $('outlineBtn')
+  fit: $('fitBtn'), top: $('topBtn'), outline: $('outlineBtn'),
+  material: $('materialBtn')
 };
 let toastTimer;
 function notify(message, error = false) {
@@ -36,7 +38,16 @@ renderer.setSize(innerWidth, innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.6));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.35;
+renderer.toneMappingExposure = 1.15;
+// glTF PBR metallic surfaces need image-based lighting. Without this environment,
+// reflective V-Ray-to-PBR materials can render as flat black on Quest / desktop.
+const pmrem = new THREE.PMREMGenerator(renderer);
+const studio = new RoomEnvironment();
+const studioMap = pmrem.fromScene(studio).texture;
+scene.environment = studioMap;
+scene.environmentIntensity = 1.1;
+studio.dispose();
+pmrem.dispose();
 renderer.xr.enabled = true;
 renderer.xr.setReferenceSpaceType('local-floor');
 document.body.appendChild(VRButton.createButton(renderer, {
@@ -67,6 +78,54 @@ let walkables = [ground];
 const loader = new GLTFLoader();
 function mat(color, metalness = .05, roughness = .8) {
   return new THREE.MeshStandardMaterial({ color, roughness, metalness });
+}
+// White-model diagnostic deliberately does not alter the GLB source materials.
+const diagnosticMaterial = new THREE.MeshStandardMaterial({
+  color: 0xd6dee5, metalness: 0, roughness: 0.78, side: THREE.DoubleSide
+});
+let diagnosticActive = false;
+const originalMaterials = new Map();
+function setMaterialDiagnostic(on) {
+  if (diagnosticActive && originalMaterials.size) {
+    for (const [mesh, original] of originalMaterials) mesh.material = original;
+    originalMaterials.clear();
+  }
+  diagnosticActive = false;
+  if (on && shown) {
+    shown.traverse(o => {
+      if (!o.isMesh) return;
+      originalMaterials.set(o, o.material);
+      o.material = diagnosticMaterial;
+    });
+    diagnosticActive = true;
+  }
+  el.material.classList.toggle('active', diagnosticActive);
+  el.material.textContent = diagnosticActive ? '恢复 Rhino 材质' : '灰模诊断';
+}
+el.material.addEventListener('click', () => {
+  setMaterialDiagnostic(!diagnosticActive);
+  notify(diagnosticActive ? '已切换灰模：如果变亮，需检查 Rhino 导出材质与贴图。'
+    : '已恢复 GLB 原始材质');
+});
+function diagnoseMaterials(model) {
+  const unique = new Set();
+  let meshes = 0, maps = 0, highMetal = 0, transparent = 0;
+  model.traverse(o => {
+    if (!o.isMesh) return;
+    meshes++;
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    for (const m of mats) if (m) unique.add(m);
+  });
+  for (const m of unique) {
+    if (m.map) maps++;
+    if ('metalness' in m && m.metalness > .85) highMetal++;
+    if (m.transparent || m.opacity < 0.98) transparent++;
+  }
+  const stats = {meshCount: meshes, materialCount: unique.size,
+    mappedMaterials: maps, highMetalMaterials: highMetal,
+    transparentMaterials: transparent};
+  console.info('[London WebXR] GLB material report', stats);
+  return stats;
 }
 const materials = {
   slab: mat(0xc9cdd0), white: mat(0xe5eaf0),
@@ -126,6 +185,7 @@ function demoBuilding() {
   return g;
 }
 function clearModel() {
+  setMaterialDiagnostic(false);
   clearBoundsHelper();
   if (!shown) return;
   root.remove(shown);
@@ -227,6 +287,7 @@ async function loadGLB(url, label) {
   try {
     const gltf = await loader.loadAsync(url);
     const model = gltf.scene;
+    const materialReport = diagnoseMaterials(model);
     model.updateMatrixWorld(true);
     const bb = new THREE.Box3().setFromObject(model);
     if (bb.isEmpty()) throw new Error('模型不包含可见几何体');
@@ -249,8 +310,9 @@ async function loadGLB(url, label) {
     rebuildBoundsHelper();
     active(label === 'sample-house.glb' ? 'sample' : '');
     notify('模型已加载并自动定位：' + measured +
-      (Math.max(size.x, size.y, size.z) > 100 ?
-        ' · 大型场景，请检查 Rhino 单位；可用鼠标查看全貌' : ' · 拖动旋转、滚轮缩放'));
+      (materialReport.highMetalMaterials > 0
+        ? ' · 检测到高金属度材质，现已启用环境反射' : '') +
+      ' · 发黑时点击灰模诊断');
   } catch (error) {
     console.error('[WebXR GLB]', error);
     notify('GLB 加载失败：' + (error.message || error), true);
