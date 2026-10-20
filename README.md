@@ -1,106 +1,70 @@
-# London 2100 · Rhino → WebXR → Meta Quest 3
+# London 2100 · WebXR Architecture Walkthrough
 
-这是一个**独立网页 VR 建筑漫游测试项目**。不需要 Unreal Engine、npm、API Key 或后端服务。整个项目可以发布到 GitHub Pages，让 Meta Quest 3 / 3S 通过浏览器直接打开。
+独立测试项目：**Rhino 8 → GLB → Three.js → WebXR → Meta Quest 3 / Quest 3S**。不使用 Unreal Engine、后端或 API Key。
 
-## 已经实现的功能
+## 当前状态
 
-- 内置一个简单的建筑展亭，首次打开立即显示。
-- 内附真正的 `sample-house.glb`，可测试 GLB 模型读取。
-- 在电脑网页中选择或拖放 Rhino 导出的 `.glb` 文件（单文件格式）。
-- Rhino 模型按真实米制比例加载：**1 Three.js 单位 = 1 m**，不自动放大/缩小；模型自动水平居中并落到地面。
-- 电脑端鼠标第一人称漫游、WASD 移动。
-- Quest WebXR 立体显示：头显追踪，左摇杆移动、右摇杆分段转向、手柄扳机指向地面瞬移。
+GitHub 仓库已包含所有第一阶段必需文件：
 
-**当前第一版未实现**墙体碰撞、真实物理、自动上下楼梯、多人同步、手势识别、复杂模型 LOD。VR 功能和流畅度仍需在实际 Quest 3 上验收。
+- `index.html`：WebXR 网页入口。
+- `style.css`：暗色架构设计界面。
+- `main.js`：三维建筑生成、GLB 加载、电脑漫游及 Quest VR 交互。
+- `sample-house.glb`：真实的简易展亭 GLB 示例（可直接加载）。
+- `Rhino8_Create_Test_Pavilion.py`：在 Rhino 8 生成约 12 × 9 m 的测试展亭。
+- `.nojekyll`：GitHub Pages 静态文件支持。
 
-## 第一步：创建新的 GitHub 仓库
+## 启用 GitHub Pages（只需一次）
 
-1. 打开 **https://github.com/new**，Owner 选择 `HaoWang310`。
-2. Repository name 输入 **`london-2100-webxr-test`**。
-3. 选择 **Public**，不要预先勾选 README、`.gitignore` 等初始化选项，点击 **Create repository**。
-4. 将本文件包**解压**，进入解压后文件夹，选中里面所有文件并上传至仓库根目录（`Add file → Upload files`）。**不要直接上传 ZIP，不要在仓库里再套一层文件夹。**
-5. 在仓库 **Settings → Pages → Build and deployment**：
-   - Source: **Deploy from a branch**
-   - Branch: **main**
-   - Folder: **/(root)**
-   - 点击 **Save**。
-6. 在 Pages 部署成功后，访问网页：`https://haowang310.github.io/london-2100-webxr-test/`。
+打开 https://github.com/HaoWang310/london-2100-webxr-test/settings/pages
 
-> 此网页链接只有在你真实创建仓库并成功启用 Pages 后才会生效，当前不能当作已经上线的地址。
+1. 找到 **Build and deployment → Source**，选择 **Deploy from a branch**。
+2. **Branch:** `main`，**Folder:** `/(root)`。
+3. 点击 **Save**，等待 GitHub Pages 构建完成。
+4. 网站地址：**https://haowang310.github.io/london-2100-webxr-test/** 。
 
-## 第二步：在电脑上试用
+> 第一次开启 Pages 前，上述地址可能显示 404。发布是否成功，请以 GitHub 的 Pages 页面为准。
 
-打开上面的 GitHub Pages 网页：
+## 电脑端测试
 
-1. 先点击 **内置建筑** 或 **示例 GLB**。
-2. 点击 **进入电脑漫游**。
-3. 使用 `W/A/S/D` 移动，鼠标环顾四周，`Esc` 退出鼠标锁定。
-4. 要载入你的 Rhino 模型，点击 **导入你的 GLB 文件**，或者直接拖放 `.glb` 到网页。
+1. 打开已发布网页（支持 Chrome 或 Edge）。
+2. 默认显示内置建筑。点击 **示例 GLB** 测试真实 GLB 资源加载。
+3. 点击 **进入电脑漫游**，鼠标改变视角，使用 **W/A/S/D** 移动，**Esc** 退出。
+4. 点击 **导入你的 GLB 文件**，可以直接选择电脑中的 Rhino GLB；也可以把 GLB 拖入页面。
 
-**重要**：在电脑浏览器导入的本地文件只存在于那一个浏览器标签页，并不会自动传给 Quest 3。如果要让 Quest 3 看同一个自定义模型，请按下方「Rhino 模型放到 Quest」操作。
+## Meta Quest 3 / 3S 测试
 
-## 第三步：在 Meta Quest 3 / 3S 测试
+1. Quest 3 接入 Wi-Fi，启动自带 **Meta Quest Browser**。
+2. 输入已部署的 HTTPS 网站地址。
+3. 点击 **Enter VR**。
+4. 转头观察场景；左摇杆前后左右移动；右摇杆快速左右推动分段转向；手柄指向水平地面或楼板，扣扳机进行传送。
+5. 使用 Quest 系统操作退出 VR。
 
-1. 头显连接 Wi-Fi，打开 **Meta Quest Browser**。
-2. 进入已经部署的 HTTPS 网页。
-3. 点击页面下方的 **ENTER VR**。
-4. 转动头部查看建筑；左摇杆移动、右摇杆分段转向；用手柄射线指向地面后按扳机传送。
-5. 使用 Quest 系统退出 VR，回到网页。
+**注意：** 普通电脑缺少 XR 硬件时显示“VR NOT SUPPORTED”属于正常情况；桌面漫游依然可以使用。
 
-WebXR 的沉浸模式必须由兼容的 XR 设备浏览器发起。在没有 WebXR 硬件的普通电脑浏览器里，按钮显示 **VR NOT SUPPORTED** 通常属于正常现象。
+## 把自己的 Rhino 模型放进 Quest
 
-## 第四步：把 Rhino 8 模型导入 Quest
+1. 在 Rhino 8 中确认场景单位为 **Metres（米）**，不要把毫米模型直接作为米导入网页。
+2. 选择建筑对象，使用 **Export Selected → GL Transmission Format (.glb)**。
+3. 导出时启用 **Map Rhino Z to glTF Y**，并导出材质。GLB 应尽量优化网格和贴图。
+4. **仅在电脑预览：** 在网页中点击“导入你的 GLB 文件”。
+5. **让 Quest 访问同一个模型：** 将 GLB 重命名为 `sample-house.glb`，通过 GitHub 网页上传到本仓库根目录并替换同名文件；等待 Pages 发布后，在 Quest 浏览器刷新，点击“示例 GLB”。
 
-1. Rhino 8 建议新建一个**单位为 Metres（米）**的文档；检查建筑真实尺寸，模型位置尽量靠近世界原点。
-2. 选择需要的物体 → `Export Selected` → **GL Transmission Format (.glb)**。
-3. 在导出选项中启用：
-   - **Map Rhino Z to glTF Y**（非常重要；Rhino 的 Z 向上必须转换成 glTF 的 Y 向上）；
-   - **Export materials**，使用合适的导出网格细分质量。
-4. 为首次测试，将导出的文件重命名为 **`sample-house.glb`**。
-5. 在 GitHub 新仓库中替换根目录的同名 `sample-house.glb` 文件，然后在 Quest 3 浏览器中刷新网页并点击 **示例 GLB**，即可加载你刚才从 Rhino 导出的模型。
+### Rhino 无模型时
 
-如果只想在电脑浏览器预览，直接点击页面左侧的 GLB 上传按钮，不需要先上传 GitHub。
+在**空白 Rhino 8 文档**运行 `_RunPythonScript`，选择仓库里的 `Rhino8_Create_Test_Pavilion.py`，生成测试建筑后按上面方法导出 GLB。
 
-### 没有 Rhino 测试模型？
+## 技术说明与第一版限制
 
-压缩包另附 **`Rhino8_Create_Test_Pavilion.py`**。在 Rhino 8 **新建空白文件**后，在命令行执行 `_RunPythonScript`，选择此脚本。它会建立一个约 12 × 9 m 的简单展亭，完成后你可以自己导出 GLB，验证整个 Rhino → GitHub → Quest 3 流程。
+- 单位为 **1 Three.js 单位 = 1 米**；导入 GLB 时不自动缩放。
+- XR 为 `immersive-vr` + `local-floor` 参考空间；必须使用兼容的头显浏览器及 HTTPS。
+- 这是功能验证原型，**尚未完成实际 Quest 3 实机验收**。
+- 未加入墙壁碰撞、楼梯自动行走、多人同步、复杂场景 LOD；VR 中可以穿墙。
+- 桌面选择的本地 GLB **不会自动同步至 Quest**，跨设备查看须上传 GLB 到 GitHub 或未来接入模型存储服务。
+- Three.js 由固定版本 CDN 提供，因此网页需要联网。
+- 如果 VR 测试按钮不可用，先确认地址为 HTTPS、Quest 浏览器支持 WebXR、Pages 部署已成功。
 
-## 本地电脑预览（可选）
+## 参考文档
 
-如果有 Python，在项目文件夹打开终端，执行：
-
-```bash
-python -m http.server 8080
-```
-
-然后访问 `http://localhost:8080/`。普通 3D 页面可以在 localhost 工作；**Quest 访问网页仍建议使用 HTTPS 的 GitHub Pages**。
-
-本项目使用固定版本的 Three.js r180 CDN，所以需要联网加载 JavaScript 模块。
-
-## 文件结构
-
-```text
-index.html                      网页入口
-style.css                      界面样式
-main.js                        建筑展示、GLB 导入、WebXR 漫游和手柄传送
-sample-house.glb               真正的简单建筑 3D 示例
-Rhino8_Create_Test_Pavilion.py  在 Rhino 中一键建立测试模型
-.nojekyll                      GitHub Pages 文件
-README.md                      本说明
-```
-
-## 常见问题
-
-- **页面白屏**：检查是否访问 GitHub Pages 的正确地址；能否联网访问 jsDelivr CDN；打开浏览器控制台查看报错。
-- **模型横着躺**：Rhino 导出时未勾选 `Map Rhino Z to glTF Y`。
-- **模型极大/极小**：检查 Rhino 单位是否为米。程序不会自动修正比例错误。
-- **Quest 看不到电脑刚导入的模型**：浏览器本地导入不会跨设备同步；请上传模型到 GitHub，替换 `sample-house.glb` 后用 Quest 网页重新加载。
-- **VR 不能进入**：确认使用 Quest Browser，站点为 HTTPS，Quest 系统允许该站点使用 VR。
-- **穿过墙壁**：首个测试版刻意没有加入碰撞处理，待确认基本漫游流程后再加。
-
-## 官方参考
-
-- Rhino 8 GLB 官方帮助：https://docs.mcneel.com/rhino/8mac/help/en-us/fileio/gltf_import_export.htm
-- Three.js VR 官方说明：https://threejs.org/manual/#en/webxr-basics
-- Meta Quest WebXR：https://developers.meta.com/vr/documentation/web/webxr-overview/
-- GitHub Pages：https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site
+- Three.js: https://threejs.org/manual/#en/webxr-basics
+- Rhino 8 glTF 导出: https://docs.mcneel.com/rhino/8mac/help/en-us/fileio/gltf_import_export.htm
+- GitHub Pages: https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site
