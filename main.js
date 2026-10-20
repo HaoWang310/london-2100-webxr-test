@@ -3,6 +3,7 @@ import { VRButton } from 'three/addons/webxr/VRButton.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { setupPerformance } from './performance.js?v=1.3';
+import { createUnitEditor } from './unit_editor.js?v=1.4';
 
 // London 2100 WebXR proof of concept. All dimensions are in metres.
 const $ = id => document.getElementById(id);
@@ -11,7 +12,7 @@ const el = {
   input: $('modelInput'), walk: $('walkBtn'), file: $('fileName'),
   size: $('sizeReadout'), status: $('notification'), hint: $('dropHint'),
   fit: $('fitBtn'), top: $('topBtn'), outline: $('outlineBtn'),
-  material: $('materialBtn')
+  material: $('materialBtn'), unit: $('unitBtn')
 };
 let toastTimer;
 function notify(message, error = false) {
@@ -75,6 +76,7 @@ scene.add(grid);
 const root = new THREE.Group();
 scene.add(root);
 let shown = null;
+let unitEditor = null;
 let walkables = [ground];
 const perf = setupPerformance(renderer, camera);
 const loader = new GLTFLoader();
@@ -187,6 +189,7 @@ function demoBuilding() {
   return g;
 }
 function clearModel() {
+  if (unitEditor?.active) unitEditor.leave();
   perf.reset();
   setMaterialDiagnostic(false);
   clearBoundsHelper();
@@ -272,6 +275,23 @@ function rebuildBoundsHelper() {
 function active(which) {
   el.demo.classList.toggle('active', which === 'demo');
   el.sample.classList.toggle('active', which === 'sample');
+  el.unit.classList.toggle('active', which === 'unit');
+}
+function showUnits() {
+  clearModel();
+  walkables = [ground];
+  shown = unitEditor.enter();
+  root.add(shown);
+  perf.onModelLoaded(shown);
+  fitModel(new THREE.Vector3(18, 9, 20));
+  rebuildBoundsHelper();
+  // Selected units have their own bright cyan highlight; avoid a huge box
+  // around the entire editing sandbox.
+  if (boundsHelper) boundsHelper.visible = false;
+  el.size.textContent = '3 × 6 × 3 m / Unit';
+  el.file.textContent = '当前：Unit 组合编辑测试 · 6 个独立模块';
+  active('unit');
+  notify('已进入 Unit 编辑 · 桌面点击拖动 / Quest 3 Grip 抓取');
 }
 function showDemo() {
   clearModel();
@@ -337,6 +357,7 @@ async function loadFile(file) {
   finally { URL.revokeObjectURL(url); }
 }
 el.demo.addEventListener('click', showDemo);
+el.unit.addEventListener('click', showUnits);
 el.fit.addEventListener('click', () => {
   if (document.pointerLockElement) document.exitPointerLock();
   fitModel(currentSize);
@@ -354,10 +375,12 @@ el.outline.addEventListener('click', () => {
 });
 el.canvas.addEventListener('pointerdown', e => {
   if (e.button !== 0 || renderer.xr.isPresenting || document.pointerLockElement) return;
+  if (unitEditor?.handlePointerDown(e)) return;
   orbitDragging = { id: e.pointerId, x: e.clientX, y: e.clientY };
   el.canvas.setPointerCapture(e.pointerId);
 });
 el.canvas.addEventListener('pointermove', e => {
+  if (unitEditor?.handlePointerMove(e)) return;
   if (!orbitDragging || orbitDragging.id !== e.pointerId ||
       renderer.xr.isPresenting || document.pointerLockElement) return;
   const dx = e.clientX - orbitDragging.x, dy = e.clientY - orbitDragging.y;
@@ -368,6 +391,7 @@ el.canvas.addEventListener('pointermove', e => {
   updateOrbitCamera();
 });
 function stopOrbit(e) {
+  if (unitEditor?.handlePointerEnd(e)) return;
   if (orbitDragging && orbitDragging.id === e.pointerId) orbitDragging = null;
 }
 el.canvas.addEventListener('pointerup', stopOrbit);
@@ -403,6 +427,7 @@ window.addEventListener('drop', async e => {
 // First-person keyboard and mouse in desktop browsers.
 const keys = new Set();
 window.addEventListener('keydown', e => {
+  if (unitEditor?.handleKey(e)) { e.preventDefault(); return; }
   keys.add(e.code);
   if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))
     e.preventDefault();
@@ -475,6 +500,7 @@ for (let i = 0; i < 2; i++) {
   line.scale.z = 12;
   controller.addEventListener('selectstart', () => {
     if (!renderer.xr.isPresenting) return;
+    if (unitEditor?.active) { unitEditor.selectXR(controller); return; }
     const hit = teleportHit(controller);
     if (!hit) return;
     const head = new THREE.Vector3();
@@ -483,8 +509,18 @@ for (let i = 0; i < 2; i++) {
     player.position.z += hit.point.z - head.z;
     player.position.y = Math.max(0, hit.point.y + .06);
   });
+  controller.addEventListener('squeezestart', () => {
+    if (renderer.xr.isPresenting && unitEditor?.active) unitEditor.gripStart(controller);
+  });
+  controller.addEventListener('squeezeend', () => {
+    if (renderer.xr.isPresenting && unitEditor?.active) unitEditor.releaseGrip(controller);
+  });
   controllers.push({ controller, line });
 }
+unitEditor = createUnitEditor({
+  canvas: el.canvas, scene, camera, renderer,
+  controls: controllers, onNotice: notify
+});
 renderer.xr.addEventListener('sessionstart', () => {
   if (document.pointerLockElement) document.exitPointerLock();
   enterWalkPosition();
@@ -529,7 +565,11 @@ function updateQuest(delta) {
     if (source.handedness === 'left') locomotion(x, y, delta, true);
     if (source.handedness === 'right') {
       if (Math.abs(x) > .72 && turnReady && turnCooldown <= 0) {
-        player.rotation.y -= Math.sign(x) * Math.PI / 6;
+        if (unitEditor?.active && unitEditor.selection) {
+          unitEditor.rotateSelected();
+        } else {
+          player.rotation.y -= Math.sign(x) * Math.PI / 6;
+        }
         turnReady = false;
         turnCooldown = .25;
       }
@@ -537,6 +577,12 @@ function updateQuest(delta) {
     }
   }
   turnCooldown = Math.max(0, turnCooldown - delta);
+  if (unitEditor?.active) {
+    unitEditor.tickXR();
+    marker.visible = false;
+    for (const { line } of controllers) line.scale.z = 18;
+    return;
+  }
   let candidate = null;
   for (const { controller, line } of controllers) {
     const hit = teleportHit(controller);
