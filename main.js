@@ -7,7 +7,8 @@ const $ = id => document.getElementById(id);
 const el = {
   canvas: $('scene'), demo: $('demoBtn'), sample: $('sampleBtn'),
   input: $('modelInput'), walk: $('walkBtn'), file: $('fileName'),
-  size: $('sizeReadout'), status: $('notification'), hint: $('dropHint')
+  size: $('sizeReadout'), status: $('notification'), hint: $('dropHint'),
+  fit: $('fitBtn'), top: $('topBtn'), outline: $('outlineBtn')
 };
 let toastTimer;
 function notify(message, error = false) {
@@ -20,8 +21,8 @@ function notify(message, error = false) {
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0a121d);
-scene.fog = new THREE.FogExp2(0x0a121d, 0.010);
-const camera = new THREE.PerspectiveCamera(73, innerWidth / innerHeight, .06, 600);
+scene.fog = null; // Large Rhino models were fading away behind the old fog.
+const camera = new THREE.PerspectiveCamera(73, innerWidth / innerHeight, .05, 6000);
 camera.rotation.order = 'YXZ';
 camera.position.set(0, 1.65, 0);
 const player = new THREE.Group();
@@ -47,13 +48,13 @@ sun.position.set(-8, 16, 12);
 scene.add(sun);
 
 const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(180, 180),
+  new THREE.PlaneGeometry(2000, 2000),
   new THREE.MeshStandardMaterial({ color: 0x101e2a, roughness: .93 })
 );
 ground.rotation.x = -Math.PI / 2;
 ground.position.y = -.06;
 scene.add(ground);
-const grid = new THREE.GridHelper(130, 130, 0x3d6981, 0x1d3343);
+const grid = new THREE.GridHelper(2000, 200, 0x3d6981, 0x1d3343);
 grid.position.y = -.04;
 grid.material.transparent = true;
 grid.material.opacity = .21;
@@ -125,6 +126,7 @@ function demoBuilding() {
   return g;
 }
 function clearModel() {
+  clearBoundsHelper();
   if (!shown) return;
   root.remove(shown);
   shown.traverse(object => {
@@ -140,10 +142,69 @@ function clearModel() {
   });
   shown = null;
 }
-function positionOutside(depth = 11) {
-  player.position.set(0, 0, Math.max(10, depth));
+// Desktop loads in orbit/inspection mode, never as a ground-level camera.
+const orbit = {
+  target: new THREE.Vector3(), theta: Math.PI / 4,
+  phi: 1.02, radius: 25, min: 2, max: 5000
+};
+let currentSize = new THREE.Vector3(12.5, 3.8, 9.5);
+let orbitDragging = null;
+let boundsHelper = null;
+let outlineEnabled = true;
+function updateOrbitCamera() {
+  if (renderer.xr.isPresenting || document.pointerLockElement === el.canvas) return;
+  const sinPhi = Math.sin(orbit.phi);
+  const offset = new THREE.Vector3(
+    orbit.radius * sinPhi * Math.sin(orbit.theta),
+    orbit.radius * Math.cos(orbit.phi),
+    orbit.radius * sinPhi * Math.cos(orbit.theta)
+  );
   player.rotation.set(0, 0, 0);
+  camera.position.set(0, 1.65, 0);
+  player.position.copy(orbit.target).add(offset);
+  player.position.y -= camera.position.y;
+  player.updateMatrixWorld(true);
+  camera.lookAt(orbit.target);
+}
+function fitModel(size, top = false) {
+  currentSize.copy(size);
+  const diagonal = Math.max(1, size.length());
+  const halfVertical = THREE.MathUtils.degToRad(camera.fov) / 2;
+  const halfHorizontal = Math.atan(Math.tan(halfVertical) * camera.aspect);
+  const halfFov = Math.min(halfVertical, halfHorizontal);
+  orbit.radius = Math.max(6, diagonal * .58 / Math.sin(halfFov));
+  orbit.min = Math.max(.6, diagonal * .008);
+  orbit.max = Math.max(120, diagonal * 15);
+  orbit.radius = THREE.MathUtils.clamp(orbit.radius, orbit.min, orbit.max);
+  orbit.target.set(0, size.y * .48, 0);
+  orbit.theta = top ? 0.001 : Math.PI / 4;
+  orbit.phi = top ? 0.09 : 1.02;
+  updateOrbitCamera();
+}
+function enterWalkPosition() {
+  const margin = THREE.MathUtils.clamp(currentSize.z * .03, 2.5, 8);
+  player.position.set(0, 0, currentSize.z / 2 + margin);
+  player.rotation.set(0, 0, 0);
+  camera.position.set(0, 1.65, 0);
   camera.rotation.set(0, 0, 0);
+}
+function clearBoundsHelper() {
+  if (!boundsHelper) return;
+  scene.remove(boundsHelper);
+  boundsHelper.geometry.dispose();
+  boundsHelper.material.dispose();
+  boundsHelper = null;
+}
+function rebuildBoundsHelper() {
+  clearBoundsHelper();
+  if (!shown) return;
+  shown.updateWorldMatrix(true, true);
+  const box = new THREE.Box3().setFromObject(shown);
+  if (box.isEmpty()) return;
+  boundsHelper = new THREE.Box3Helper(box, 0x7ddff8);
+  boundsHelper.visible = outlineEnabled;
+  scene.add(boundsHelper);
+  el.outline.classList.toggle('active', outlineEnabled);
 }
 function active(which) {
   el.demo.classList.toggle('active', which === 'demo');
@@ -154,7 +215,8 @@ function showDemo() {
   walkables = [ground];
   shown = demoBuilding();
   root.add(shown);
-  positionOutside();
+  fitModel(new THREE.Vector3(12.5, 3.8, 9.5));
+  rebuildBoundsHelper();
   el.size.textContent = '12.5 × 9.5 × 3.8 m';
   el.file.textContent = '当前：内置建筑示例';
   active('demo');
@@ -183,9 +245,12 @@ async function loadGLB(url, label) {
       + ' × ' + size.y.toFixed(1) + ' m';
     el.size.textContent = measured;
     el.file.textContent = '当前：' + label;
-    positionOutside(size.z / 2 + 6);
+    fitModel(size);
+    rebuildBoundsHelper();
     active(label === 'sample-house.glb' ? 'sample' : '');
-    notify('模型加载完成：' + measured);
+    notify('模型已加载并自动定位：' + measured +
+      (Math.max(size.x, size.y, size.z) > 100 ?
+        ' · 大型场景，请检查 Rhino 单位；可用鼠标查看全貌' : ' · 拖动旋转、滚轮缩放'));
   } catch (error) {
     console.error('[WebXR GLB]', error);
     notify('GLB 加载失败：' + (error.message || error), true);
@@ -205,6 +270,49 @@ async function loadFile(file) {
   finally { URL.revokeObjectURL(url); }
 }
 el.demo.addEventListener('click', showDemo);
+el.fit.addEventListener('click', () => {
+  if (document.pointerLockElement) document.exitPointerLock();
+  fitModel(currentSize);
+  notify('已自动适配并显示整个模型');
+});
+el.top.addEventListener('click', () => {
+  if (document.pointerLockElement) document.exitPointerLock();
+  fitModel(currentSize, true);
+  notify('已切换顶视角 · 拖动可旋转');
+});
+el.outline.addEventListener('click', () => {
+  outlineEnabled = !outlineEnabled;
+  if (boundsHelper) boundsHelper.visible = outlineEnabled;
+  el.outline.classList.toggle('active', outlineEnabled);
+});
+el.canvas.addEventListener('pointerdown', e => {
+  if (e.button !== 0 || renderer.xr.isPresenting || document.pointerLockElement) return;
+  orbitDragging = { id: e.pointerId, x: e.clientX, y: e.clientY };
+  el.canvas.setPointerCapture(e.pointerId);
+});
+el.canvas.addEventListener('pointermove', e => {
+  if (!orbitDragging || orbitDragging.id !== e.pointerId ||
+      renderer.xr.isPresenting || document.pointerLockElement) return;
+  const dx = e.clientX - orbitDragging.x, dy = e.clientY - orbitDragging.y;
+  orbitDragging.x = e.clientX;
+  orbitDragging.y = e.clientY;
+  orbit.theta -= dx * .006;
+  orbit.phi = THREE.MathUtils.clamp(orbit.phi + dy * .006, .06, Math.PI - .06);
+  updateOrbitCamera();
+});
+function stopOrbit(e) {
+  if (orbitDragging && orbitDragging.id === e.pointerId) orbitDragging = null;
+}
+el.canvas.addEventListener('pointerup', stopOrbit);
+el.canvas.addEventListener('pointercancel', stopOrbit);
+el.canvas.addEventListener('wheel', e => {
+  if (renderer.xr.isPresenting || document.pointerLockElement) return;
+  e.preventDefault();
+  orbit.radius = THREE.MathUtils.clamp(
+    orbit.radius * Math.exp(e.deltaY * .0011), orbit.min, orbit.max
+  );
+  updateOrbitCamera();
+}, { passive: false });
 el.sample.addEventListener('click', () => loadGLB('./sample-house.glb', 'sample-house.glb'));
 el.input.addEventListener('change', async () => {
   const f = el.input.files?.[0];
@@ -239,6 +347,7 @@ el.walk.addEventListener('click', async () => {
     document.exitPointerLock();
     return;
   }
+  enterWalkPosition();
   try { await el.canvas.requestPointerLock(); }
   catch { notify('无法锁定鼠标。请使用 HTTPS 或 localhost。', true); }
 });
@@ -247,6 +356,7 @@ document.addEventListener('pointerlockchange', () => {
   el.walk.innerHTML = locked ? '退出电脑漫游 <span>ESC</span>'
     : '进入电脑漫游 <span>↗</span>';
   document.querySelector('.reticle').style.display = locked ? 'block' : 'none';
+  if (!locked && !renderer.xr.isPresenting) updateOrbitCamera();
 });
 document.addEventListener('mousemove', e => {
   if (document.pointerLockElement !== el.canvas || renderer.xr.isPresenting) return;
@@ -310,12 +420,14 @@ for (let i = 0; i < 2; i++) {
 }
 renderer.xr.addEventListener('sessionstart', () => {
   if (document.pointerLockElement) document.exitPointerLock();
+  enterWalkPosition();
   camera.position.set(0, 0, 0);
   notify('VR 已开启 · 左摇杆移动，扳机指向地面传送');
 });
 renderer.xr.addEventListener('sessionend', () => {
   camera.position.set(0, 1.65, 0);
   marker.visible = false;
+  updateOrbitCamera();
   notify('已退出沉浸模式');
 });
 
@@ -378,7 +490,8 @@ renderer.setAnimationLoop(() => {
     if (keys.has('KeyD') || keys.has('ArrowRight')) x++;
     if (keys.has('KeyW') || keys.has('ArrowUp')) z--;
     if (keys.has('KeyS') || keys.has('ArrowDown')) z++;
-    if (x || z) locomotion(x, z, delta);
+    if ((x || z) && document.pointerLockElement === el.canvas)
+      locomotion(x, z, delta);
   }
   renderer.render(scene, camera);
 });
@@ -387,5 +500,6 @@ window.addEventListener('resize', () => {
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.6));
+  updateOrbitCamera();
 });
 showDemo();
