@@ -23,3 +23,6 @@
 .view-hint{font-size:10px;color:#8ca2b5;line-height:1.6;margin:9px 0 2px}
 #scene{cursor:grab}
 #scene:active{cursor:grabbing}
+
+/* v1.2 PBR material troubleshooting */
+.view-controls .pill{flex:1 1 calc(50% - 8px)}
