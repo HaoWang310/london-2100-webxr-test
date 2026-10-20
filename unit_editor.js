@@ -22,7 +22,7 @@ const movePlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const intersectPoint = new THREE.Vector3();
 
 export function createUnitEditor({
-  canvas, scene, camera, renderer, controls, onChange = () => {},
+  canvas, scene, camera, renderer, player, controls, onChange = () => {},
   onNotice = () => {}
 }) {
   const $ = id => document.getElementById(id);
@@ -50,6 +50,62 @@ export function createUnitEditor({
   const coloredMats = Object.fromEntries(Object.entries(TYPES).map(([key, val]) => [
     key, new THREE.MeshStandardMaterial({ color: val.color, roughness: .65 })
   ]));
+
+  // Immersive WebXR has no visible HTML DOM panel. Provide a real 3D,
+  // controller-ray clickable toolbar on the left side of the user.
+  const xrToolbar = new THREE.Group();
+  xrToolbar.position.set(-1.05, 1.48, -1.5);
+  xrToolbar.visible = false;
+  xrToolbar.name = 'London2100_XR_Unit_Toolbar';
+  player.add(xrToolbar);
+  const vrButtons = [];
+  function toolbarButton(label, action, index) {
+    const c = document.createElement('canvas');
+    c.width = 512; c.height = 104;
+    const ctx = c.getContext('2d');
+    const texture = new THREE.CanvasTexture(c);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    function redraw(text) {
+      ctx.clearRect(0, 0, c.width, c.height);
+      ctx.fillStyle = '#0b2533'; ctx.fillRect(1, 1, 510, 102);
+      ctx.strokeStyle = '#9de6f3'; ctx.lineWidth = 5;
+      ctx.strokeRect(3, 3, 506, 98);
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#d8f7ff'; ctx.font = 'bold 38px sans-serif';
+      ctx.fillText(text, 256, 52);
+      texture.needsUpdate = true;
+    }
+    redraw(label);
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(.82, .174),
+      new THREE.MeshBasicMaterial({map: texture, transparent: true,
+        side: THREE.DoubleSide, depthTest: false}));
+    mesh.position.y = -index * .21;
+    mesh.renderOrder = 999;
+    mesh.userData.unitAction = action;
+    xrToolbar.add(mesh);
+    vrButtons.push(mesh);
+    return {mesh, redraw};
+  }
+  const typeOptions = Object.keys(TYPES);
+  const typeName = () => TYPES[typeSelect.value]?.name?.toUpperCase() || 'RESIDENTIAL';
+  const typeTool = toolbarButton('TYPE: ' + typeName(), () => {
+    typeSelect.value = typeOptions[(typeOptions.indexOf(typeSelect.value) + 1) % typeOptions.length];
+    typeTool.redraw('TYPE: ' + typeName());
+  }, 0);
+  toolbarButton('ADD UNIT', () => add(), 1);
+  toolbarButton('COPY', () => duplicate(), 2);
+  toolbarButton('ROTATE 90°', () => rotate(), 3);
+  toolbarButton('DELETE', () => remove(), 4);
+  toolbarButton('RESET', () => reset(), 5);
+  typeSelect.addEventListener('change', () => typeTool.redraw('TYPE: ' + typeName()));
+  function syncVrUI() {
+    xrToolbar.visible = state.active && renderer.xr.isPresenting;
+  }
+  function toolbarHit(ray) {
+    if (!xrToolbar.visible) return null;
+    const hits = ray.intersectObjects(vrButtons, false);
+    return hits[0] || null;
+  }
   // Create helper objects per activation because the host disposes procedural
   // mesh geometries when changing models; never reuse a disposed GPU buffer.
   function createWorkArea(group) {
@@ -248,6 +304,7 @@ export function createUnitEditor({
     panel.hidden = false;
     modeButton.classList.add('active');
     gltfHint.hidden = false;
+    syncVrUI();
     reset();
     return state.group;
   }
@@ -257,6 +314,7 @@ export function createUnitEditor({
     setSelected(null);
     state.drag = null;
     state.active = false;
+    syncVrUI();
     panel.hidden = true;
     modeButton.classList.remove('active');
     gltfHint.hidden = true;
@@ -332,13 +390,21 @@ export function createUnitEditor({
   }
   function selectXR(controller) {
     if (!state.active) return false;
-    const unit = pick(controllerRay(controller));
+    const ray = controllerRay(controller);
+    const tool = toolbarHit(ray);
+    if (tool) {
+      tool.object.userData.unitAction();
+      return true;
+    }
+    const unit = pick(ray);
     setSelected(unit);
     return true;
   }
   function gripStart(controller) {
     if (!state.active || state.grip) return false;
-    const unit = pick(controllerRay(controller));
+    const ray = controllerRay(controller);
+    if (toolbarHit(ray)) return false;
+    const unit = pick(ray);
     if (!unit) return false;
     setSelected(unit);
     controller.updateWorldMatrix(true, false);
@@ -357,6 +423,7 @@ export function createUnitEditor({
     return true;
   }
   function tickXR() {
+    syncVrUI();
     if (!state.active || !renderer.xr.isPresenting) return;
     if (!state.grip) return;
     const { controller, unit, relative } = state.grip;
@@ -390,6 +457,6 @@ export function createUnitEditor({
     enter, leave, reset, selectXR, gripStart, releaseGrip, tickXR,
     handlePointerDown, handlePointerMove, handlePointerEnd, handleKey,
     get selection() { return state.selected; },
-    rotateSelected: rotate
+    rotateSelected: rotate, syncVrUI
   };
 }
