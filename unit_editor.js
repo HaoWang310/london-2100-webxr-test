@@ -98,8 +98,9 @@ export function createUnitEditor({
   toolbarButton('DELETE', () => remove(), 4);
   toolbarButton('RESET', () => reset(), 5);
   typeSelect.addEventListener('change', () => typeTool.redraw('TYPE: ' + typeName()));
-  function syncVrUI() {
-    xrToolbar.visible = state.active && renderer.xr.isPresenting;
+  function syncVrUI(force = null) {
+    const presenting = force === null ? renderer.xr.isPresenting : force;
+    xrToolbar.visible = state.active && presenting;
   }
   function toolbarHit(ray) {
     if (!xrToolbar.visible) return null;
