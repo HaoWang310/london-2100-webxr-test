@@ -40,3 +40,27 @@
 .performance-stats{grid-column:1/-1;white-space:pre-line;line-height:1.7;
   color:#9bd5e6;background:#0b1520;border-radius:6px;padding:10px 8px;
   font-size:10px;letter-spacing:0.1px;font-variant-numeric:tabular-nums}
+
+
+/* v1.4: Unit assembly laboratory */
+.scene-controls{flex-wrap:wrap}
+.scene-controls .pill{flex:1 1 28%;min-width:88px;padding:0 7px}
+.unit-panel{margin-top:7px;border:1px solid rgba(114,218,240,.28);
+  border-radius:10px;padding:0 12px 12px;background:rgba(16,37,47,.58)}
+.unit-panel[hidden]{display:none}
+.unit-panel .section-label{border-top:0;margin:10px 0 7px;padding-top:3px;color:#94e4fa}
+.unit-note{font-size:11px;color:#a3e2e9;margin-bottom:14px}
+.unit-create{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center}
+.unit-create label{font-size:10px;color:#a3b7c9}
+.unit-create select{min-width:0;grid-column:1/-1;border:1px solid #38546a;
+  border-radius:6px;background:#172939;padding:10px 8px;
+  font-size:12px;color:#dcecf7}
+.unit-create #addUnitBtn{grid-column:1/-1;color:#041c28;background:#98e8f5;border:0;font-weight:700}
+.unit-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:10px}
+.unit-actions .pill{min-width:0;font-size:11px;padding:0 6px}
+.unit-actions .pill[disabled]{opacity:.35;cursor:not-allowed}
+#snapUnitBtn{grid-column:1/-1}
+.unit-status{white-space:normal;overflow-wrap:anywhere;line-height:1.6;
+  margin-top:12px;padding:10px 9px;border-radius:7px;background:#0a1721;
+  font-size:11px;color:#b5e5f1}
+.unit-panel .view-hint{line-height:1.75}
