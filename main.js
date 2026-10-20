@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { VRButton } from 'three/addons/webxr/VRButton.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { setupPerformance } from './performance.js?v=1.3';
 
 // London 2100 WebXR proof of concept. All dimensions are in metres.
 const $ = id => document.getElementById(id);
@@ -75,6 +76,7 @@ const root = new THREE.Group();
 scene.add(root);
 let shown = null;
 let walkables = [ground];
+const perf = setupPerformance(renderer, camera);
 const loader = new GLTFLoader();
 function mat(color, metalness = .05, roughness = .8) {
   return new THREE.MeshStandardMaterial({ color, roughness, metalness });
@@ -185,6 +187,7 @@ function demoBuilding() {
   return g;
 }
 function clearModel() {
+  perf.reset();
   setMaterialDiagnostic(false);
   clearBoundsHelper();
   if (!shown) return;
@@ -275,6 +278,7 @@ function showDemo() {
   walkables = [ground];
   shown = demoBuilding();
   root.add(shown);
+  perf.onModelLoaded(shown);
   fitModel(new THREE.Vector3(12.5, 3.8, 9.5));
   rebuildBoundsHelper();
   el.size.textContent = '12.5 × 9.5 × 3.8 m';
@@ -302,6 +306,7 @@ async function loadGLB(url, label) {
     model.traverse(o => { if (o.isMesh) walkables.push(o); });
     root.add(model);
     shown = model;
+    perf.onModelLoaded(model);
     const measured = size.x.toFixed(1) + ' × ' + size.z.toFixed(1)
       + ' × ' + size.y.toFixed(1) + ' m';
     el.size.textContent = measured;
@@ -552,16 +557,23 @@ renderer.setAnimationLoop(() => {
     if (keys.has('KeyD') || keys.has('ArrowRight')) x++;
     if (keys.has('KeyW') || keys.has('ArrowUp')) z--;
     if (keys.has('KeyS') || keys.has('ArrowDown')) z++;
-    if ((x || z) && document.pointerLockElement === el.canvas)
-      locomotion(x, z, delta);
+    if (document.pointerLockElement === el.canvas) {
+      if (x || z) locomotion(x, z, delta);
+      // Free-flight in desktop walkthrough: E ascends, Q descends.
+      const upDown = Number(keys.has('KeyE')) - Number(keys.has('KeyQ'));
+      if (upDown) player.position.y = Math.max(0,
+        player.position.y + upDown * 3.25 * delta);
+    }
   }
+  perf.beforeFrame(performance.now());
   renderer.render(scene, camera);
+  perf.afterFrame(performance.now());
 });
 window.addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.6));
+  perf.onResize();
   updateOrbitCamera();
 });
 showDemo();
